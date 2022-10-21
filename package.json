@@ -1,0 +1,23 @@
+{
+  "name": "idtrobot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start" : "nodemon server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DevArthurM/IDTRobot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DevArthurM/IDTRobot/issues"
+  },
+  "homepage": "https://github.com/DevArthurM/IDTRobot#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
