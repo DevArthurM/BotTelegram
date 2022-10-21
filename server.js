@@ -7,7 +7,7 @@ app.use(express.json())
 app.post('/',(req, res) => {
     console.log("Requisição feita por " + req.ip + "  " )
     console.log(req.body)
-    res.send()
+    res.send("Work!")
 });
 // Port listen
 app.listen(3000)
