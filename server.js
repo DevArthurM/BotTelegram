@@ -10,6 +10,10 @@ app.post('/', (req, res) => {
     console.log(req.body)
     res.send("Work!")
 });
+// GetTest
+app.get('/getTest', (req, res) => {
+    res.send("<h1>FUNCIONOU</h1>")
+});
 // Port listen
 app.listen(port, () => {
     console.log(`The server started on port ${port}`)
