@@ -8,7 +8,7 @@ app.use(express.json())
 // Post method buy order
 app.post('/buyOrder', (req, res) => {
     console.log("Requisição feita por " + req.ip + "  ")
-    console.log(req.body)
+    console.log(req.body.data.buyer)
     res.send("Work!")
 });
 // Post method order
