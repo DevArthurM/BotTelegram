@@ -3,7 +3,7 @@ import env from './.env'
 import { Telegraf } from 'telegraf';
 // Constants
 const bot = new Telegraf(env.token);
-// Start command
+// Start command.
 bot.start((content) => {
     const message = content.update.message
     const name = content.update.message.from.first_name
