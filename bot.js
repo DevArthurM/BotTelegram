@@ -19,7 +19,7 @@ bot.start((content) => {
 // Read text
 bot.on("text", async (content) => {
     const text = content.message.text
-    const isACode = text.slice(0, 2) === "HP"
+    const isACode = text.slice(0, 2) === "HP" && text.length() == 16
     if (isACode) {
         content.reply("Código validado com sucesso!\n link grupo 1: www.exemplolink.com.br\n link grupo 2: www.exemplolink.com.br\n link grupo 2: www.exemplolink.com.br")
     } else {
