@@ -12,39 +12,49 @@ const db = new sqlite3.Database(env.pathDB, sqlite3.OPEN_READWRITE, (error) => {
 
 // Start command.
 bot.start((content) => {
+    const idUser = content.from.id
+    const name = content.update.message.from.first_name
     try {
-        const message = content.update.message
-        const name = content.update.message.from.first_name
-        content.reply("Seja bem vindo(a) " + name + "!\nÉ um prazer ter você na industria do Trader!")
-        content.reply("Insira seu código de compra.\n\n 🚨 OS CÓDIGOS DE COMPRA SÃO INICIADOS COM HP 🚨 \n\nCompletando essa etapa de cadastro iremos te enviar o link do nosso grupo!")
-        console.log(message)
-    } catch (err) {
-        console.log(err)
+        db.all("SELECT * FROM user WHERE idTelegram = ?", [idUser], async (error, rows) => {
+            console.log(rows)
+            if (rows.length > 0) {
+                await content.reply(`Você já possui um cadastro conosco.`)
+            } else {
+                await content.reply(`Seja bem vindo(a) ${name}!\nÉ um prazer ter você na industria do Trader!`)
+                await content.reply(`Insira seu código de compra.`)
+                await content.reply(`🚨 OS CÓDIGOS DE COMPRA SÃO INICIADOS COM HP 🚨`)
+                await content.reply(`Completando essa etapa de cadastro iremos te enviar o link do nosso grupo!`)
+            }
+        })
+    } catch (error) {
+        content.reply(`Erro ao iniciar o bot.`)
     }
 })
 
 // Read text
 bot.on("text", async (content) => {
+    //Routines
     const text = content.message.text
     const idUser = content.from.id
     const isAdmin = env.idsVipTelegram.includes(idUser)
-    const isACode = text.slice(0, 2) === "HP" && text.length() == 16
+    const isACode = text.slice(0, 2) === ("HP" || "hP" || "Hp" || "hp") && text.length === 16
+    const errorMessage = content.reply("Digite um código válido.")
+    // Routines
     if (isACode) {
         content.reply("Código validado com sucesso!\n link grupo 1: www.exemplolink.com.br\n link grupo 2: www.exemplolink.com.br\n link grupo 2: www.exemplolink.com.br")
-    } else if
-        (text === "resume" && isAdmin) {
-        db.all("SELECT * FROM user", [], async (error, rows) => {
-            if (rows.length === 0) {
-                content.reply("Nenhum usuário no banco dos Traders.")
-            } else {
-                await content.reply("LISTA DE PESSOAS CADASTRADAS EM SEU BANCO DE DADOS.")
-                rows.forEach((index) => {
-                    content.reply(`${index.email}`)
-                })
-            }
-        })
     } else {
-        content.reply("Digite um código válido.")
+        switch (text) {
+            case "resume":
+                if (isAdmin) {
+                    content.reply("OnResumeMode")
+                } else {
+                    errorMessage
+                }
+                break;
+            default:
+                errorMessage
+                break;
+        }
     }
 })
 
