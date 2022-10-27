@@ -43,7 +43,7 @@ app.post('/refundOrder', (req, res) => {
         const orderCode = body.data.purchase.transaction
         const email = body.data.buyer.email
         db.run('UPDATE user SET status = ? WHERE email = ? and orderCode = ?', [2, email, orderCode], (error) => {
-            if (error) throw error
+            if (error) console.log(error)
             console.log(`User ${email} update status to ${2}`)
         })
         db.all('SELECT * FROM user WHERE email = ? AND orderCode = ?', [email, orderCode], (error, rows) => {
