@@ -2,8 +2,6 @@
 const env = require('./.env')
 const express = require('express')
 const sqlite3 = require('sqlite3').verbose()
-// TO DO Telegraf implementation
-// const Telegraf = require('telegraf')
 
 // Const
 const app = express()
@@ -22,16 +20,20 @@ app.listen(port, () => {
 
 // Post method buy order (Completed)
 app.post('/buyOrder', (req, res) => {
+    // TO-DO Check if person have data on program
     console.log("Buy Order by => " + req.ip + "  ")
     try {
         const body = req.body
         const orderCode = body.data.purchase.transaction
         const email = body.data.buyer.email
+        // TO-DO Validate unique e-mail
         db.run('INSERT INTO user (email,orderCode) values (?,?)', [email, orderCode], (error) => {
             if (error) console.log(error)
         })
+        res.send()
     } catch (error) {
         console.log(error)
+        res.send(error)
     }
 });
 
@@ -51,8 +53,7 @@ app.post('/refundOrder', (req, res) => {
             const link1 = user.link1
             const link2 = user.link2
             const link3 = user.link3
-            //
-            // Remove from group.
+            // TO-DO Remove from group.
         })
     } catch (error) {
         console.log(error)
@@ -62,6 +63,13 @@ app.post('/refundOrder', (req, res) => {
 // GetTest
 app.get('/getTest', (req, res) => {
     res.send("<h1>Server is Running</h1>")
+})
+
+// Get data
+app.get('/getData', (req, res) => {
+    db.all('SELECT * FROM user', [], (error, rows) => {
+        res.send(rows)
+    })
 })
 
 
