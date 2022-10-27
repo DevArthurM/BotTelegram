@@ -20,10 +20,7 @@ bot.start((content) => {
             if (rows.length > 0) {
                 await content.reply(`Você já possui um cadastro conosco.`)
             } else {
-                await content.reply(`Seja bem vindo(a) ${name}!\nÉ um prazer ter você na industria do Trader!`)
-                await content.reply(`Insira seu código de compra.`)
-                await content.reply(`🚨 OS CÓDIGOS DE COMPRA SÃO INICIADOS COM HP 🚨`)
-                await content.reply(`Completando essa etapa de cadastro iremos te enviar o link do nosso grupo!`)
+                await content.reply(`Seja bem vindo(a) ${name}!\nÉ um prazer ter você na industria do Trader!\nDigite seu código de compra.\n\n🚨ATENÇÃO! O CÓDIGO SE INICIA COM HP 🚨\n\nCompletando essa etapa de cadastro iremos te enviar os links dos nossos grupos!`)
             }
         })
     } catch (error) {
@@ -36,23 +33,39 @@ bot.on("text", async (content) => {
     //Routines
     const text = content.message.text
     const idUser = content.from.id
+    const name = content.from.first_name
     const isAdmin = env.idsVipTelegram.includes(idUser)
     const isACode = text.slice(0, 2) === ("HP" || "hP" || "Hp" || "hp") && text.length === 16
-    const errorMessage = content.reply("Digite um código válido.")
     // Routines
     if (isACode) {
-        content.reply("Código validado com sucesso!\n link grupo 1: www.exemplolink.com.br\n link grupo 2: www.exemplolink.com.br\n link grupo 2: www.exemplolink.com.br")
+        db.all("SELECT * FROM user WHERE idTelegram = ? AND orderCode = ?", [idUser, text], async (error, rows) => {
+            if (error) {
+                content.reply(`Erro ao validar código.`)
+            } else {
+                if (rows.length > 0) {
+                    await content.reply(`${name}, você já possui um cadastro conosco.`)
+                } else {
+                    db.all("UPDATE user SET idTelegram = ? WHERE orderCode = ?", [idUser, text], (error) => {
+                        if (error) {
+                            content.reply("Um erro ocorreu ao realizar o cadastro.")
+                        } else {
+                            content.reply(`${name} seu cadastro foi realizado com sucesso!`)
+                        }
+                    })
+                }
+            }
+        })
     } else {
         switch (text) {
             case "resume":
                 if (isAdmin) {
                     content.reply("OnResumeMode")
                 } else {
-                    errorMessage
+                    content.reply("OnResumeMode")
                 }
                 break;
             default:
-                errorMessage
+                content.reply("Digite um código válido.")
                 break;
         }
     }
