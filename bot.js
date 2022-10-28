@@ -35,36 +35,25 @@ bot.on("text", async (content) => {
     const idUser = content.from.id
     const name = content.from.first_name
     const isAdmin = env.idsVipTelegram.includes(idUser)
-    const isACode = text.slice(0, 2) === ("HP" || "hP" || "Hp" || "hp") && text.length === 16
     // Routines
-    if (isACode) {
-        db.all("SELECT * FROM user WHERE idTelegram = ? AND email = ?", [idUser, text], async (error, rows) => {
-            if (error) {
-                content.reply(`Erro ao validar código.`)
+    db.all("SELECT * FROM user WHERE idTelegram = ? AND email = ?", [idUser, text], async (error, rows) => {
+        if (error) {
+            content.reply(`Erro ao validar código.`)
+        } else {
+            if (rows.length > 0) {
+                await content.reply(`${name}, você já possui um cadastro conosco.`)
             } else {
-                if (rows.length > 0) {
-                    await content.reply(`${name}, você já possui um cadastro conosco.`)
-                } else {
-                    db.all("UPDATE user SET idTelegram = ? WHERE email = ?", [idUser, text], (error) => {
-                        if (error) {
-                            content.reply("Um erro ocorreu ao realizar o cadastro.")
-                        } else {
-                            // TO-DO Generate telegram link.
-                            content.reply(`${name} seu cadastro foi realizado com sucesso!`)
-                        }
-                    })
-                }
+                db.all("UPDATE user SET idTelegram = ? WHERE email = ?", [idUser, text], (error) => {
+                    if (error) {
+                        content.reply("Um erro ocorreu ao realizar o cadastro.")
+                    } else {
+                        // TO-DO Generate telegram link.
+                        content.reply(`${name} seu cadastro foi realizado com sucesso!`)
+                    }
+                })
             }
-        })
-    } else {
-        switch (text) {
-            case "resume":
-                break;
-            default:
-                content.reply("Digite um comando válido.")
-                break;
         }
-    }
+    })
 })
 
 
