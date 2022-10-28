@@ -1,117 +1,81 @@
 // Const imports
-const env = require('./.env')
-const Telegraf = require('telegraf');
-const sqlite3 = require('sqlite3').verbose()
+import {
+    token,
+    pathDB,
+    links,
+    idsVipTelegram
+} from './env.js'
+import Telegraf from 'telegraf'
+import sqlite3 from 'sqlite3'
+import {
+    isRegisterOrderCode,
+    isRegisterById,
+    registerNewUser,
+    isNewUser,
+    getLinks,
+    isUser,
+    updateStatus,
+    pushNewUser,
+    status
+} from './databaseconfig.js'
 // Launch bot.
-const bot = new Telegraf.Telegraf(env.token);
-const status = {
-    BUY: 1,
-    REFOUND: 2,
-    EMPTY: 0
-}
+const bot = new Telegraf.Telegraf(token);
 bot.launch()
 //Connect db
-const db = new sqlite3.Database(env.pathDB, sqlite3.OPEN_READWRITE, (error) => {
+const db = new sqlite3.Database(pathDB, sqlite3.OPEN_READWRITE, (error) => {
     if (error) return console.error(error)
 })
 
 // Start command.
-bot.start((content) => {
+bot.start(async (content) => {
     const idUser = content.from.id
     const name = content.update.message.from.first_name
     try {
-        db.all("SELECT * FROM user WHERE idTelegram = ?", [idUser], async (error, rows) => {
-            console.log(rows)
-            if (rows.length > 0) {
-                await content.reply(`Você já possui um cadastro conosco.`)
-            } else {
-                await content.reply(`Seja bem vindo(a) ${name}!\nÉ um prazer ter você na industria do Trader!\nDigite seu código de compra.\n\n🚨ATENÇÃO! O CÓDIGO SE INICIA COM HP 🚨\n\nCompletando essa etapa de cadastro iremos te enviar os links dos nossos grupos!`)
-            }
-        })
+        if (await isRegisterById(idUser)) {
+            content.reply(`${name}, você já possui um registro conosco.`)
+        } else {
+            content.reply(`Seja bem vindo(a) ${name}!\nÉ um prazer ter você na industria do Trader!\nDigite seu código de compra.\n\n🚨ATENÇÃO! O CÓDIGO SE INICIA COM HP 🚨\n\nCompletando essa etapa de cadastro iremos te enviar os links dos nossos grupos!`)
+        }
     } catch (error) {
         content.reply(`Erro ao iniciar o bot.`)
     }
 })
 
 // Read text
+
 bot.on("text", async (content) => {
-    //Routines
-    const text = content.message.text
-    const idUser = content.from.id
-    const name = content.from.first_name
-    const isAdmin = env.idsVipTelegram.includes(idUser)
-    const isACode = text.slice(0, 2) === ("HP" || "hP" || "Hp" || "hp") && text.length === 16
-    // Routines
-    if (isACode) {
-        db.all("SELECT * FROM user WHERE idTelegram = ? AND orderCode = ?", [idUser, text], async (error, rows) => {
-            console.log()
-            if (error) {
-                content.reply(`Erro ao validar código.`)
-            } else {
-                if (rows.length > 1) {
-                    await content.reply(`Cadastro duplicado no banco de dados! Fale com o suporte!`)
-                } else if (rows.length === 1) {
-                    await content.reply(`${name}, você já possui um cadastro conosco.`)
+    const typeChat = content.update.message.chat.type
+    if (typeChat === 'private') {
+        const orderCodeText = content.message.text
+        const idUser = content.from.id
+        const name = content.from.first_name
+        const isACode = orderCodeText.slice(0, 2) === ("HP" || "hP" || "Hp" || "hp") && orderCodeText.length === 16
+        // Routines
+        if (isACode) {
+            if (await isNewUser(orderCodeText)) {
+                content.reply(`Seja bem vindo ${name}!\nSeus links estão sendo gerados, aguarde!`)
+                const link = {
+                    link1: await createChatLink(links.link1).then(link => link.invite_link),
+                    link2: await createChatLink(links.link2).then(link => link.invite_link),
+                    link3: await createChatLink(links.link3).then(link => link.invite_link)
                 }
-                else {
-                        db.all("UPDATE user SET idTelegram = ?, status = ? WHERE orderCode = ?", [idUser, status.BUY, text], async (error) => {
-                            if (error) {
-                                content.reply("Um erro ocorreu ao realizar o cadastro.")
-                            } else {
-                                // To - Do Limit member
-                                content.reply("Cadastro feito com sucesso!\nAguarde, seus links estão sendo gerados.")
-                                //Generate link 1
-                                await bot.telegram.createChatInviteLink("-1001456522037", undefined, undefined, 1, undefined).then((link) => {
-                                    db.run("UPDATE user SET link1 = ? WHERE orderCode = ?",
-                                        [link.invite_link, text], (error) => {
-                                            if (error) {
-                                                content.reply("Erro ao salvar links.")
-                                            }
-                                        })
-                                    content.reply(`Grupo 1 : ${link.invite_link}`)
-                                })
-                                //Generate link 2
-                                await bot.telegram.createChatInviteLink("-1001456522037", undefined, undefined, 1, undefined).then((link) => {
-                                    db.run("UPDATE user SET link2 = ? WHERE orderCode = ?",
-                                        [link.invite_link, text], (error) => {
-                                            if (error) {
-                                                content.reply("Erro ao salvar links.")
-                                            }
-                                        })
-                                    content.reply(`Grupo 2 : ${link.invite_link}`)
-                                })
-                                //Generate link 3
-                                await bot.telegram.createChatInviteLink("-1001456522037", undefined, undefined, 1, undefined).then((link) => {
-                                    db.run("UPDATE user SET link3 = ? WHERE orderCode = ?",
-                                        [link.invite_link, text], (error) => {
-                                            if (error) {
-                                                content.reply("Erro ao salvar links.")
-                                            }
-                                        })
-                                    content.reply(`Grupo 3 : ${link.invite_link}`)
-                                })
-                            }
-                            
-                        })
+                registerNewUser(idUser, orderCodeText, link)
+                content.reply(`Grupo 1 - ${link.link1}`)
+                content.reply(`Grupo 2 - ${link.link2}`)
+                content.reply(`Grupo 3 - ${link.link3}`)
+            } else {
+                if (await isRegisterById(idUser)) {
+                    content.reply("Seu telegram já está cadastrado conosco.")
+                } else {
+                    content.reply("Seu código não está registrado como um código válido em nosso sistema.")
                 }
             }
-        })
-    } else {
-        switch (text) {
-            case "resume":
-                if (isAdmin) {
-                    content.reply("OnResumeMode")
-                } else {
-                    content.reply("OnResumeMode")
-                }
-                break;
-            default:
-                content.reply("Digite um código válido.")
-                break;
+        } else {
+            content.reply(`Digite um código válido.`)
         }
     }
 })
 
-
-
-
+function createChatLink(idChat) {
+    return bot.telegram.createChatInviteLink(idChat, undefined, undefined, 1, undefined).then((link) => { return link })
+}
