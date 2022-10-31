@@ -68,7 +68,11 @@ export function pushNewUser(email, orderCode) {
 }
 
 export function updateStatus(status, email) {
-    db.run("UPDATE user SET status = ? WHERE email = ?", [status, email])
+    return new Promise((resolve, reject) => {
+        db.run("UPDATE user SET status = ? WHERE email = ?", [status, email], (error) => {
+            error ? reject(error) : resolve()
+        })
+    })
 }
 
 export function getLinks(email) {
@@ -91,10 +95,10 @@ export function getLinks(email) {
     })
 }
 
-export function isUser(email, orderCode) {
+export function isUser(email) {
     return new Promise((resolve, reject) => {
-        db.all("SELECT * FROM user WHERE email = ? AND orderCode = ?",
-            [email, orderCode],
+        db.all("SELECT * FROM user WHERE email = ?",
+            [email],
             (error, rows) => {
                 if (error) { reject(error) } else { rows.length > 0 ? resolve(true) : resolve(false) }
             })
@@ -106,6 +110,11 @@ export function registerNewUser(idTelegram, orderCode, links) {
         [idTelegram, links.link1, links.link2, links.link3, status.BUY, orderCode])
 }
 
+export function botRefoundRoutine(idTelegram, orderCode, links) {
+    db.run("UPDATE user SET , status = ? WHERE orderCode = ?",
+        [status.REFOUND, orderCode])
+}
+
 export function isRegisterOrderCode(orderCode) {
     return new Promise((resolve, reject) => {
         db.all("SELECT orderCode FROM user WHERE orderCode = ?", [orderCode], (error, rows) => {
@@ -114,6 +123,27 @@ export function isRegisterOrderCode(orderCode) {
             } else {
                 rows.length > 0 ? resolve(true) : resolve(false)
             }
+        })
+    })
+}
+
+export function registerAgain(email, orderCode) {
+    db.run("UPDATE user SET idTelegram = ?,orderCode = ?, link1 = ?, link2 = ?, link3 = ?, status = ? WHERE email = ?",
+        ["undefined", orderCode, null, null, null, status.EMPTY, email], (error) => { console.log(error) })
+}
+
+export function getIdTelegram(email) {
+    return new Promise((resolve, reject) => {
+        db.all("SELECT idTelegram FROM user WHERE email = ?", [email], (error, idTelegram) => {
+            if (error) { reject(error) } else { resolve(idTelegram) }
+        })
+    })
+}
+
+export function getBanIds() {
+    return new Promise((resolve, reject) => {
+        db.all("SELECT * FROM user WHERE status = ?", [status.REFOUND], (error, rows) => {
+            error ? reject(error) : resolve(rows)
         })
     })
 }

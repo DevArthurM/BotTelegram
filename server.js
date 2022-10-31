@@ -1,12 +1,15 @@
 //Imports
 import express from 'express'
+import axios from 'axios'
 import {
-    getLinks,
     isUser,
     updateStatus,
     pushNewUser,
-    status
+    status,
+    registerAgain,
+    getIdTelegram
 } from './databaseconfig.js'
+import { fetchWebHook } from './env.js'
 
 // Const
 const app = express()
@@ -25,28 +28,30 @@ app.post('/buyOrder', async (req, res) => {
         const body = req.body
         const orderCode = body.data.purchase.transaction
         const email = body.data.buyer.email
-        if (await isUser(email, orderCode)) {
-            return res.status(403).send()
+        console.log(getIdTelegram(email))
+        if (await isUser(email)) {
+            registerAgain(email, orderCode)
+            console.log('look')
+            return res.status(200).send()
         } else {
-            console.log(await isUser(email, orderCode))
             pushNewUser(email, orderCode)
             return res.status(200).send()
         }
     } catch (error) {
+        console.log(error)
         res.status(400).send()
     }
 });
 
 // Post method refund order (Incomplete)
-app.post('/refundOrder', (req, res) => {
-    console.log("Refund Order by => " + req.ip + "  ")
+app.post('/refundOrder', async (req, res) => {
     try {
         const body = req.body
-        const orderCode = body.data.purchase.transaction
         const email = body.data.buyer.email
-        updateStatus(status.REFOUND, email)
-        const links = getLinks(email)
+        await updateStatus(status.REFOUND, email)
+            .then(() => { axios.get(fetchWebHook).then().finally() })
     } catch (error) {
         console.log(error)
     }
+    return;
 });
