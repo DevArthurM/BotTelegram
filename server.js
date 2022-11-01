@@ -9,7 +9,7 @@ import {
     registerAgain,
     getIdTelegram
 } from './databaseconfig.js'
-import { fetchWebHook } from './env.js'
+import { fetchWebHookRef, fetchWebHookBuy } from './env.js'
 
 // Const
 const app = express()
@@ -28,16 +28,16 @@ app.post('/buyOrder', async (req, res) => {
         const body = req.body
         const orderCode = body.data.purchase.transaction
         const email = body.data.buyer.email
-        console.log(getIdTelegram(email))
         if (await isUser(email)) {
-            registerAgain(email, orderCode)
-            console.log('look')
+            const idUser = await getIdTelegram(email).then((result) => { return result[0] })
+            await unBanPerson(idUser.idTelegram).finally(() => { registerAgain(email, orderCode) })
             return res.status(200).send()
         } else {
             pushNewUser(email, orderCode)
             return res.status(200).send()
         }
     } catch (error) {
+        console.log("ERRO BUY ORDER")
         console.log(error)
         res.status(400).send()
     }
@@ -49,9 +49,19 @@ app.post('/refundOrder', async (req, res) => {
         const body = req.body
         const email = body.data.buyer.email
         await updateStatus(status.REFOUND, email)
-            .then(() => { axios.get(fetchWebHook).then().finally() })
+            .then(() => { fetch(fetchWebHookRef) })
     } catch (error) {
+        console.log("ERRO REFUND ORDER")
         console.log(error)
     }
     return;
 });
+
+function unBanPerson(idTelegram) {
+    return axios({
+        method: 'post',
+        url: fetchWebHookBuy,
+        headers: {},
+        data: { idTelegram: idTelegram }
+    })
+}

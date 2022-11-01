@@ -22,7 +22,7 @@ export function isNewUser(orderCode) {
             } else {
                 if (rows.length > 0) {
                     rows.forEach((user) => {
-                        user.idTelegram === "undefined" ? resolve(true) : resolve(false)
+                        user.status === 0 ? resolve(true) : resolve(false)
                     })
                 } else {
                     resolve(false)
@@ -128,8 +128,8 @@ export function isRegisterOrderCode(orderCode) {
 }
 
 export function registerAgain(email, orderCode) {
-    db.run("UPDATE user SET idTelegram = ?,orderCode = ?, link1 = ?, link2 = ?, link3 = ?, status = ? WHERE email = ?",
-        ["undefined", orderCode, null, null, null, status.EMPTY, email], (error) => { console.log(error) })
+    db.run("UPDATE user SET orderCode = ?, link1 = ?, link2 = ?, link3 = ?, status = ? WHERE email = ?",
+        [orderCode, null, null, null, status.EMPTY, email], (error) => { console.log(error) })
 }
 
 export function getIdTelegram(email) {
