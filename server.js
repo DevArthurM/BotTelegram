@@ -7,7 +7,8 @@ import {
     pushNewUser,
     status,
     registerAgain,
-    getIdTelegram
+    getIdTelegram,
+    getUser
 } from './databaseconfig.js'
 import { fetchWebHookRef, fetchWebHookBuy } from './env.js'
 
@@ -28,11 +29,21 @@ app.post('/buyOrder', async (req, res) => {
         const body = req.body
         const orderCode = body.data.purchase.transaction
         const email = body.data.buyer.email
+        const eventType = body.event
         if (await isUser(email)) {
-            const idUser = await getIdTelegram(email).then((result) => { return result[0] })
-            await unBanPerson(idUser.idTelegram).finally(() => { registerAgain(email, orderCode) })
-            return res.status(200).send()
+                console.log("is user")
+                const idUser = await getIdTelegram(email).then((result) => { return result[0].idTelegram })
+                const user = await getUser(idUser)
+                console.log(user[0].status)
+                if(user[0].status === (status.REFOUND)){
+                    await unBanPerson(idUser).finally(() => {
+                        console.log("UnBanPerson")
+                        registerAgain(email, orderCode)
+                    })
+                }
+                return res.status(200).send()
         } else {
+            console.log("is not a user")
             pushNewUser(email, orderCode)
             return res.status(200).send()
         }
@@ -46,10 +57,19 @@ app.post('/buyOrder', async (req, res) => {
 // Post method refund order (Incomplete)
 app.post('/refundOrder', async (req, res) => {
     try {
+        console.log("RefundOrder")
         const body = req.body
         const email = body.data.buyer.email
         await updateStatus(status.REFOUND, email)
-            .then(() => { fetch(fetchWebHookRef) })
+            .then(() => {
+                axios({
+                    method: 'get',
+                    url: fetchWebHookRef,
+                    headers: {},
+                    data: {}
+                })
+                res.send()
+            })
     } catch (error) {
         console.log("ERRO REFUND ORDER")
         console.log(error)

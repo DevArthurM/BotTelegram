@@ -24,26 +24,33 @@ app.listen(portBotWebHook, () => {
 
 // Refound order
 app.get(endPointRefoundBot, async () => {
-    const banIds = await getBanIds()
-    banIds.forEach(async (user) => {
-        if (user.idTelegram === "undefined") {
-        } else {
-            if (await banChatMemberRoutine(user.idTelegram)) {
-                console.log("Ban work.")
+    try {
+        const banIds = await getBanIds()
+        banIds.forEach(async (user) => {
+            if (user.idTelegram === "undefined") {
             } else {
-                console.log("Ban does not work")
+                if (await banChatMemberRoutine(user.idTelegram)) {
+                    console.log("Ban work.")
+                } else {
+                    console.log("Ban does not work")
+                }
             }
-        }
-    });
+        });
+    } catch (error) {
+        console.log(error)
+    }
 })
 
 // Buy order
 app.post(endPointBuyBot, (req, res) => {
+    console.log("end point buy order")
     try {
         const idTelegram = req.body.idTelegram
-        bot.telegram.unbanChatMember(links.link1, idTelegram, true)
-        bot.telegram.unbanChatMember(links.link2, idTelegram, true)
-        bot.telegram.unbanChatMember(links.link3, idTelegram, true)
+        console.log("UNBAN")
+        console.log(idTelegram)
+        bot.telegram.unbanChatMember(links.link1, idTelegram, true).catch((error) => { console.log(error) })
+        bot.telegram.unbanChatMember(links.link2, idTelegram, true).catch((error) => { console.log(error) })
+        bot.telegram.unbanChatMember(links.link3, idTelegram, true).catch((error) => { console.log(error) })
         res.status(200).send()
     } catch (error) {
         res.status(400).send()
@@ -112,22 +119,24 @@ bot.on("text", async (content) => {
 
 // Functions
 function banChatMemberRoutine(userIdTelegram) {
-    return new Promise((resolve, reject) => {
-        bot.telegram.banChatMember(links.link1, userIdTelegram).then((result) => {
-            result ? null : reject(result)
-        })
-            .finally(() => {
-                bot.telegram.banChatMember(links.link2, userIdTelegram).then((result) => {
-                    result ? null : reject(result)
-                })
-                    .finally(() => {
-                        bot.telegram.banChatMember(links.link3, userIdTelegram).then((result) => {
-                            result ? null : reject(result)
-                        })
-                            .finally(() => { resolve(true) })
-                    })
+    try {
+        return new Promise((resolve, reject) => {
+            bot.telegram.banChatMember(links.link1, userIdTelegram).then((result) => {
+                result ? null : reject(result)
             })
-    })
+                .finally(() => {
+                    bot.telegram.banChatMember(links.link2, userIdTelegram).then((result) => {
+                        result ? null : reject(result)
+                    })
+                        .finally(() => {
+                            bot.telegram.banChatMember(links.link3, userIdTelegram).then((result) => {
+                                result ? null : reject(result)
+                            })
+                                .finally(() => { resolve(true) })
+                        })
+                })
+        })
+    } catch (error) { console.log(error) }
 }
 
 // Functions bot
