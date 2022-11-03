@@ -9,12 +9,16 @@ import {
     endPointBuyBot
 } from './env.js'
 import {
+    status,
     isRegisterById,
     registerNewUser,
     isNewUser,
     getBanIds,
+    getIdTelegram,
+    getUser
 } from './databaseconfig.js'
-
+//Bot
+const bot = new Telegraf.Telegraf(token);
 // Comunicate with server
 const app = express()
 app.use(express.json())
@@ -23,34 +27,42 @@ app.listen(portBotWebHook, () => {
 })
 
 // Refound order
-app.get(endPointRefoundBot, async () => {
+app.post(endPointRefoundBot, async (req, res) => {
     try {
+        const email = req.body.email
+        const id = await getIdTelegram(email)
         const banIds = await getBanIds()
+        console.log(id)
         banIds.forEach(async (user) => {
             if (user.idTelegram === "undefined") {
             } else {
                 if (await banChatMemberRoutine(user.idTelegram)) {
+                    bot.telegram.sendMessage(id[0].idTelegram,"Olá Trader! Seu plano com a industria do trader venceu, renove seu contrato conosco!")
                     console.log("Ban work.")
                 } else {
                     console.log("Ban does not work")
                 }
             }
         });
+        res.status(200).send()
     } catch (error) {
+        res.status(400).send()
         console.log(error)
     }
+    
 })
 
 // Buy order
-app.post(endPointBuyBot, (req, res) => {
+app.post(endPointBuyBot,async  (req, res) => {
     console.log("end point buy order")
     try {
         const idTelegram = req.body.idTelegram
         console.log("UNBAN")
         console.log(idTelegram)
-        bot.telegram.unbanChatMember(links.link1, idTelegram, true).catch((error) => { console.log(error) })
-        bot.telegram.unbanChatMember(links.link2, idTelegram, true).catch((error) => { console.log(error) })
-        bot.telegram.unbanChatMember(links.link3, idTelegram, true).catch((error) => { console.log(error) })
+        await bot.telegram.unbanChatMember(links.link1, idTelegram, true).catch((error) => { console.log(error) })
+        await bot.telegram.unbanChatMember(links.link2, idTelegram, true).catch((error) => { console.log(error) })
+        await bot.telegram.unbanChatMember(links.link3, idTelegram, true).catch((error) => { console.log(error) })
+        bot.telegram.sendMessage(idTelegram,"Parabéns! Sua conta foi reativada! Digite o código HP novo gerado na sua nova compra para gerarmos seus links.")
         res.status(200).send()
     } catch (error) {
         res.status(400).send()
@@ -58,7 +70,7 @@ app.post(endPointBuyBot, (req, res) => {
 })
 
 // Start command bot.
-const bot = new Telegraf.Telegraf(token);
+
 bot.launch()
 bot.start(async (content) => {
     try {
@@ -66,11 +78,17 @@ bot.start(async (content) => {
         const name = content.update.message.from.first_name
         try {
             if (await isRegisterById(idUser)) {
-                content.reply(`${name}, você já possui um registro conosco.`)
+                const user = await getUser(idUser)
+                if(user[0].status === status.EMPTY){
+                    content.reply(`${name}, você já possui um registro antigo conosco, digite seu código HP para reativar sua conta.`)
+                }else{
+                    content.reply(`${name}, você já possui um registro conosco.`)
+                }
             } else {
                 content.reply(`Seja bem vindo(a) ${name}!\nÉ um prazer ter você na industria do Trader!\nDigite seu código de compra.\n\n🚨ATENÇÃO! O CÓDIGO SE INICIA COM HP 🚨\n\nCompletando essa etapa de cadastro iremos te enviar os links dos nossos grupos!`)
             }
         } catch (error) {
+            console.log(error)
             content.reply(`Erro ao iniciar o bot.`)
         }
     } catch (error) {
@@ -98,9 +116,9 @@ bot.on("text", async (content) => {
                         link3: await createChatLink(links.link3).then((link) => { return link.invite_link })
                     }
                     registerNewUser(idUser, orderCodeText, link)
-                    content.reply(`Grupo 1 - ${link.link1}`)
-                    content.reply(`Grupo 2 - ${link.link2}`)
-                    content.reply(`Grupo 3 - ${link.link3}`)
+                    await content.reply(`Grupo de interação 👥 - ${link.link1}`)
+                    await content.reply(`Grupo de sinais LISTA 💸🧾- ${link.link2}`)
+                    await content.reply(`Grupo de sinais 🔴 AO VIVO 🤑 - ${link.link3}`)
                 } else {
                     if (await isRegisterById(idUser)) {
                         content.reply("Seu telegram já está cadastrado conosco.")

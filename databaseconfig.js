@@ -199,3 +199,19 @@ export function setStateByMail(status, email) {
     } catch (error) {
     }
 }
+
+export function isUserRegister(email){
+    try {
+        return new Promise((resolve, reject) => {
+            db.all("SELECT * FROM user WHERE email = ?", [email], ((error, rows) => {
+                if (!error) {
+                    rows[0].status === (status.REGISTER) ? resolve(true) : resolve(false)
+                } else {
+                    reject(error)
+                }
+            }))
+        })
+    } catch (error) {
+        return error
+    }
+}
