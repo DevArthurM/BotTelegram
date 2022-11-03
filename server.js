@@ -26,20 +26,16 @@ app.listen(port, () => {
 
 // Post method buy order (Completed)
 app.post('/buyOrder', async (req, res) => {
-    console.log("Buy Order by => " + req.ip + "  ")
     try {
         const body = req.body
         const orderCode = body.data.purchase.transaction
         const email = body.data.buyer.email
         const eventType = body.event
         if (await isUser(email)) {
-            console.log("is user")
             const idUser = await getIdTelegram(email).then((result) => { return result[0].idTelegram })
             const user = await getUser(idUser)
-            console.log(user[0].status)
             if (user[0].status === (status.REFOUND)) {
                 await unBanPerson(idUser).finally(() => {
-                    console.log("UnBanPerson")
                     registerAgain(email, orderCode)
                 })
             } else if (user[0].status === (status.BUY)) {
@@ -47,13 +43,10 @@ app.post('/buyOrder', async (req, res) => {
             }
             return res.status(200).send()
         } else {
-            console.log("is not a user")
             pushNewUser(email, orderCode)
             return res.status(200).send()
         }
     } catch (error) {
-        console.log("ERRO BUY ORDER")
-        console.log(error)
         res.status(400).send()
     }
 });
@@ -61,12 +54,11 @@ app.post('/buyOrder', async (req, res) => {
 // Post method refund order (Incomplete)
 app.post('/refundOrder', async (req, res) => {
     try {
-        console.log("RefundOrder")
         const body = req.body
         const email = body.data.buyer.email
         const eventType = body.event
         if ((eventType === "PURCHASE_EXPIRED") && (await isUserRegister(email))) {
-            setStateByMail(status.BUY,email)
+            setStateByMail(status.BUY, email)
             res.send()
         } else {
             await updateStatus(status.REFOUND, email)
@@ -81,8 +73,6 @@ app.post('/refundOrder', async (req, res) => {
                 })
         }
     } catch (error) {
-        console.log("ERRO REFUND ORDER")
-        console.log(error)
     }
     return;
 });

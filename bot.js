@@ -32,36 +32,29 @@ app.post(endPointRefoundBot, async (req, res) => {
         const email = req.body.email
         const id = await getIdTelegram(email)
         const banIds = await getBanIds()
-        console.log(id)
         banIds.forEach(async (user) => {
             if (user.idTelegram === "undefined") {
             } else {
                 if (await banChatMemberRoutine(user.idTelegram)) {
                     bot.telegram.sendMessage(id[0].idTelegram,"Olá Trader! Seu plano com a industria do trader venceu, renove seu contrato conosco!")
-                    console.log("Ban work.")
                 } else {
-                    console.log("Ban does not work")
                 }
             }
         });
         res.status(200).send()
     } catch (error) {
         res.status(400).send()
-        console.log(error)
     }
     
 })
 
 // Buy order
 app.post(endPointBuyBot,async  (req, res) => {
-    console.log("end point buy order")
     try {
         const idTelegram = req.body.idTelegram
-        console.log("UNBAN")
-        console.log(idTelegram)
-        await bot.telegram.unbanChatMember(links.link1, idTelegram, true).catch((error) => { console.log(error) })
-        await bot.telegram.unbanChatMember(links.link2, idTelegram, true).catch((error) => { console.log(error) })
-        await bot.telegram.unbanChatMember(links.link3, idTelegram, true).catch((error) => { console.log(error) })
+        await bot.telegram.unbanChatMember(links.link1, idTelegram, true).catch((error) => {  })
+        await bot.telegram.unbanChatMember(links.link2, idTelegram, true).catch((error) => {  })
+        await bot.telegram.unbanChatMember(links.link3, idTelegram, true).catch((error) => {  })
         bot.telegram.sendMessage(idTelegram,"Parabéns! Sua conta foi reativada! Digite o código HP novo gerado na sua nova compra para gerarmos seus links.")
         res.status(200).send()
     } catch (error) {
@@ -88,11 +81,9 @@ bot.start(async (content) => {
                 content.reply(`Seja bem vindo(a) ${name}!\nÉ um prazer ter você na industria do Trader!\nDigite seu código de compra.\n\n🚨ATENÇÃO! O CÓDIGO SE INICIA COM HP 🚨\n\nCompletando essa etapa de cadastro iremos te enviar os links dos nossos grupos!`)
             }
         } catch (error) {
-            console.log(error)
             content.reply(`Erro ao iniciar o bot.`)
         }
     } catch (error) {
-        console.log(error)
     }
 })
 
@@ -109,7 +100,6 @@ bot.on("text", async (content) => {
             if (isACode) {
                 if (await isNewUser(orderCodeText)) {
                     content.reply(`Seja bem vindo ${name}!\nSeus links estão sendo gerados, aguarde!`)
-                    console.log(await createChatLink(links.link1))
                     const link = {
                         link1: await createChatLink(links.link1).then((link) => { return link.invite_link }),
                         link2: await createChatLink(links.link2).then((link) => { return link.invite_link }),
@@ -131,7 +121,6 @@ bot.on("text", async (content) => {
             }
         }
     } catch (error) {
-        console.log(error)
     }
 })
 
@@ -154,7 +143,7 @@ function banChatMemberRoutine(userIdTelegram) {
                         })
                 })
         })
-    } catch (error) { console.log(error) }
+    } catch (error) { }
 }
 
 // Functions bot
