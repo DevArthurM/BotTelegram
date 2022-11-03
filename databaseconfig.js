@@ -129,7 +129,7 @@ export function registerNewUser(idTelegram, orderCode, links) {
     } catch (error) { console.log(error) }
 }
 
-export function botRefoundRoutine(idTelegram, orderCode, links) {
+export function botRefoundRoutine(orderCode) {
     try {
         db.run("UPDATE user SET , status = ? WHERE orderCode = ?",
             [status.REFOUND, orderCode])
@@ -200,13 +200,29 @@ export function setStateByMail(status, email) {
     }
 }
 
-export function isUserRegister(email){
+export function isUserRegister(email) {
     try {
         return new Promise((resolve, reject) => {
             db.all("SELECT * FROM user WHERE email = ?", [email], ((error, rows) => {
                 if (!error) {
                     rows[0].status === (status.REGISTER) ? resolve(true) : resolve(false)
                 } else {
+                    reject(error)
+                }
+            }))
+        })
+    } catch (error) {
+        return error
+    }
+}
+
+export function getStatusByEmail(email) {
+    try {
+        return new Promise((resolve, reject) => {
+            db.all("SELECT status FROM user WHERE email = ?", [email], ((error, rows) => {
+                if (!error) {
+                    resolve(rows[0].status)
+                }else{
                     reject(error)
                 }
             }))

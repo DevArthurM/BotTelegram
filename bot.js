@@ -15,7 +15,8 @@ import {
     isNewUser,
     getBanIds,
     getIdTelegram,
-    getUser
+    getUser,
+    isUserRegister
 } from './databaseconfig.js'
 //Bot
 const bot = new Telegraf.Telegraf(token);
@@ -28,16 +29,15 @@ app.listen(portBotWebHook, () => {
 
 // Refound order
 app.post(endPointRefoundBot, async (req, res) => {
+    console.log(`endPointRefoundBot - started`)
     try {
         const email = req.body.email
         const id = await getIdTelegram(email)
         const banIds = await getBanIds()
         banIds.forEach(async (user) => {
-            if (user.idTelegram === "undefined") {
-            } else {
+            if (!(user.idTelegram === "undefined")) {
                 if (await banChatMemberRoutine(user.idTelegram)) {
-                    bot.telegram.sendMessage(id[0].idTelegram,"Olá Trader! Seu plano com a industria do trader venceu, renove seu contrato conosco!")
-                } else {
+                    bot.telegram.sendMessage(id[0].idTelegram, "Olá Trader!\nSua assinatura conosco foi encerrada, renove seu contrato conosco!")
                 }
             }
         });
@@ -45,21 +45,32 @@ app.post(endPointRefoundBot, async (req, res) => {
     } catch (error) {
         res.status(400).send()
     }
-    
+
 })
 
 // Buy order
-app.post(endPointBuyBot,async  (req, res) => {
+app.post(endPointBuyBot, async (req, res) => {
+    console.log(`endPointBuyBot - started`)
     try {
         const idTelegram = req.body.idTelegram
-        await bot.telegram.unbanChatMember(links.link1, idTelegram, true).catch((error) => {  })
-        await bot.telegram.unbanChatMember(links.link2, idTelegram, true).catch((error) => {  })
-        await bot.telegram.unbanChatMember(links.link3, idTelegram, true).catch((error) => {  })
-        bot.telegram.sendMessage(idTelegram,"Parabéns! Sua conta foi reativada! Digite o código HP novo gerado na sua nova compra para gerarmos seus links.")
+        if(idTelegram !== "undefined"){
+            await bot.telegram.unbanChatMember(links.link1, idTelegram, true).catch((error) => { })
+            await bot.telegram.unbanChatMember(links.link2, idTelegram, true).catch((error) => { })
+            await bot.telegram.unbanChatMember(links.link3, idTelegram, true).catch((error) => { })
+            bot.telegram.sendMessage(idTelegram, "Parabéns! Sua conta foi reativada!\nDigite o código HP novo gerado na sua nova compra para gerarmos seus links.")
+        }
         res.status(200).send()
     } catch (error) {
         res.status(400).send()
     }
+})
+
+app.post("/unBan", async (req, res) => {
+    const idTelegram = req.body.idTelegram
+    await bot.telegram.unbanChatMember(links.link1, idTelegram, true).catch((error) => { })
+    await bot.telegram.unbanChatMember(links.link2, idTelegram, true).catch((error) => { })
+    await bot.telegram.unbanChatMember(links.link3, idTelegram, true).catch((error) => { })
+    res.send()
 })
 
 // Start command bot.
@@ -72,10 +83,16 @@ bot.start(async (content) => {
         try {
             if (await isRegisterById(idUser)) {
                 const user = await getUser(idUser)
-                if(user[0].status === status.EMPTY){
-                    content.reply(`${name}, você já possui um registro antigo conosco, digite seu código HP para reativar sua conta.`)
-                }else{
-                    content.reply(`${name}, você já possui um registro conosco.`)
+                switch (user[0].status) {
+                    case status.BUY:
+                        content.reply(`${name}, você já possui um registro conosco.`)
+                        break;
+                    case status.EMPTY:
+                        content.reply(`${name}, você já possui um registro disponível conosco, digite seu código HP para ativar sua conta.`)
+                        break;
+                    case status.REFOUND:
+                        content.reply(`${name}, seu registro conosco está suspenço, renove seu plano para ter acesso aos nossos produtos.`)
+                        break;
                 }
             } else {
                 content.reply(`Seja bem vindo(a) ${name}!\nÉ um prazer ter você na industria do Trader!\nDigite seu código de compra.\n\n🚨ATENÇÃO! O CÓDIGO SE INICIA COM HP 🚨\n\nCompletando essa etapa de cadastro iremos te enviar os links dos nossos grupos!`)
@@ -92,10 +109,10 @@ bot.on("text", async (content) => {
     try {
         const typeChat = content.update.message.chat.type
         if (typeChat === 'private') {
-            const orderCodeText = content.message.text
+            const orderCodeText = (content.message.text).toUpperCase()
             const idUser = content.from.id
             const name = content.from.first_name
-            const isACode = orderCodeText.slice(0, 2) === ("HP" || "hP" || "Hp" || "hp") && orderCodeText.length === 16
+            const isACode = orderCodeText.slice(0, 2) === ("HP") && orderCodeText.length === 16
             // Routines
             if (isACode) {
                 if (await isNewUser(orderCodeText)) {
