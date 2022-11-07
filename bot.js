@@ -67,6 +67,7 @@ app.post(endPointBuyBot, async (req, res) => {
 })
 
 app.get("/test", async (req, res) => {
+    bot.telegram.unbanChatMember("-1001456522037", 1338525257)
     res.send(await isAmd(1694198535))
 })
 
@@ -110,7 +111,7 @@ bot.on("text", async (content) => {
             const orderCodeText = (content.message.text).toUpperCase()
             const idUser = content.from.id
             const name = content.from.first_name
-            const isACode = orderCodeText.slice(0, 2) === ("HP") && orderCodeText.length === 16
+            const isACode = orderCodeText.slice(0, 2) === ("HP")
             // Routines
             if (isACode) {
                 if (await isNewUser(orderCodeText)) {
@@ -159,6 +160,9 @@ async function banChatMemberRoutine(userIdTelegram) {
     try {
         return new Promise(async (resolve, reject) => {
             if (await isAmd(userIdTelegram)) {
+                console.log("Is a admin or creator, can't remove.")
+                return false
+            } else {
                 bot.telegram.banChatMember(links.link1, userIdTelegram).then((result) => {
                     result ? null : reject(result)
                 })
@@ -169,16 +173,12 @@ async function banChatMemberRoutine(userIdTelegram) {
                     result ? null : reject(result)
                 })
                 return true
-            } else {
-                console.log("Is a admin or creator, can't remove.")
-                return false
             }
         })
     } catch (error) { }
 }
 
 function getTextMessageStatus(statusParam) {
-    console.log(statusParam)
     switch (statusParam) {
         case status.BUY:
             return "Ativo"
@@ -191,7 +191,10 @@ function getTextMessageStatus(statusParam) {
 
 // Functions bot
 function createChatLink(idChat) {
-    return bot.telegram.createChatInviteLink(idChat, undefined, undefined, 1, undefined)
+    const thirtyMinutes = 1800000
+    const currentDate = Date.now()
+    const expireDate = currentDate + thirtyMinutes
+    return bot.telegram.createChatInviteLink(idChat, "industriaDoTrade", expireDate, 1, false)
 }
 
 async function isAmd(userIdTelegram) {
