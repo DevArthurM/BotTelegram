@@ -16,7 +16,8 @@ import {
     getBanIds,
     getIdTelegram,
     getUser,
-    isUserRegister
+    isUserRegister,
+    getAllUsers
 } from './databaseconfig.js'
 //Bot
 const bot = new Telegraf.Telegraf(token);
@@ -53,7 +54,7 @@ app.post(endPointBuyBot, async (req, res) => {
     console.log(`endPointBuyBot - started`)
     try {
         const idTelegram = req.body.idTelegram
-        if(idTelegram !== "undefined"){
+        if (idTelegram !== "undefined") {
             await bot.telegram.unbanChatMember(links.link1, idTelegram, true).catch((error) => { })
             await bot.telegram.unbanChatMember(links.link2, idTelegram, true).catch((error) => { })
             await bot.telegram.unbanChatMember(links.link3, idTelegram, true).catch((error) => { })
@@ -65,12 +66,8 @@ app.post(endPointBuyBot, async (req, res) => {
     }
 })
 
-app.post("/unBan", async (req, res) => {
-    const idTelegram = req.body.idTelegram
-    await bot.telegram.unbanChatMember(links.link1, idTelegram, true).catch((error) => { })
-    await bot.telegram.unbanChatMember(links.link2, idTelegram, true).catch((error) => { })
-    await bot.telegram.unbanChatMember(links.link3, idTelegram, true).catch((error) => { })
-    res.send()
+app.get("/test", async (req, res) => {
+    res.send(await isAmd(1694198535))
 })
 
 // Start command bot.
@@ -95,7 +92,7 @@ bot.start(async (content) => {
                         break;
                 }
             } else {
-                content.reply(`Seja bem vindo(a) ${name}!\nÉ um prazer ter você na industria do Trader!\nDigite seu código de compra.\n\n🚨ATENÇÃO! O CÓDIGO SE INICIA COM HP 🚨\n\nCompletando essa etapa de cadastro iremos te enviar os links dos nossos grupos!`)
+                content.reply(`Seja bem vindo(a) ${name}!\nÉ um prazer ter você na indústria do Trader!\nDigite seu código de compra.\n\n🚨O CÓDIGO SE INICIA COM HP🚨\n\nCompletando essa etapa de cadastro iremos te enviar os links dos nossos grupos!`)
             }
         } catch (error) {
             content.reply(`Erro ao iniciar o bot.`)
@@ -109,6 +106,7 @@ bot.on("text", async (content) => {
     try {
         const typeChat = content.update.message.chat.type
         if (typeChat === 'private') {
+            const command = (content.message.text).toUpperCase()
             const orderCodeText = (content.message.text).toUpperCase()
             const idUser = content.from.id
             const name = content.from.first_name
@@ -134,7 +132,21 @@ bot.on("text", async (content) => {
                     }
                 }
             } else {
-                content.reply(`Digite um código válido.`)
+                if (await isAmd(idUser)) {
+                    switch (command) {
+                        case "TODOS":
+                            const allUsers = await getAllUsers().then((result) => { return result })
+                            let message = "TODOS USUÁRIOS\n"
+                            allUsers.forEach((user) => {
+                                const userStatus = getTextMessageStatus(user.status)
+                                message += `${user.email} - ${userStatus}\n`
+                            })
+                            content.reply(message)
+                            break;
+                    }
+                } else {
+                    content.reply(`Digite um código válido.`)
+                }
             }
         }
     } catch (error) {
@@ -142,28 +154,80 @@ bot.on("text", async (content) => {
 })
 
 // Functions
-function banChatMemberRoutine(userIdTelegram) {
+async function banChatMemberRoutine(userIdTelegram) {
+    console.log(await isAmd(userIdTelegram))
     try {
-        return new Promise((resolve, reject) => {
-            bot.telegram.banChatMember(links.link1, userIdTelegram).then((result) => {
-                result ? null : reject(result)
-            })
-                .finally(() => {
-                    bot.telegram.banChatMember(links.link2, userIdTelegram).then((result) => {
-                        result ? null : reject(result)
-                    })
-                        .finally(() => {
-                            bot.telegram.banChatMember(links.link3, userIdTelegram).then((result) => {
-                                result ? null : reject(result)
-                            })
-                                .finally(() => { resolve(true) })
-                        })
+        return new Promise(async (resolve, reject) => {
+            if (await isAmd(userIdTelegram)) {
+                bot.telegram.banChatMember(links.link1, userIdTelegram).then((result) => {
+                    result ? null : reject(result)
                 })
+                bot.telegram.banChatMember(links.link2, userIdTelegram).then((result) => {
+                    result ? null : reject(result)
+                })
+                bot.telegram.banChatMember(links.link3, userIdTelegram).then((result) => {
+                    result ? null : reject(result)
+                })
+                return true
+            } else {
+                console.log("Is a admin or creator, can't remove.")
+                return false
+            }
         })
     } catch (error) { }
+}
+
+function getTextMessageStatus(statusParam) {
+    console.log(statusParam)
+    switch (statusParam) {
+        case status.BUY:
+            return "Ativo"
+        case status.EMPTY:
+            return "Não registrado";
+        case status.REFOUND:
+            return "Desativado";
+    }
 }
 
 // Functions bot
 function createChatLink(idChat) {
     return bot.telegram.createChatInviteLink(idChat, undefined, undefined, 1, undefined)
+}
+
+async function isAmd(userIdTelegram) {
+    async function getAllAdms() {
+        function getAdms(idGroup) {
+            return new Promise(async (resolve, reject) => {
+                const adms = await bot.telegram.getChatAdministrators(idGroup).then((response) => { return response })
+                let responseBody = []
+                adms.forEach((Element) => {
+                    switch (Element.status) {
+                        case 'administrator':
+                        case 'creator':
+                            responseBody.push(Element.user.id)
+                            break;
+                    }
+                })
+                resolve(responseBody)
+            })
+        }
+        const admsGroup1 = await getAdms(links.link1).then((result) => { return result })
+        const admsGroup2 = await getAdms(links.link2).then((result) => { return result })
+        const admsGroup3 = await getAdms(links.link3).then((result) => { return result })
+        const result = {
+            admsGroup1,
+            admsGroup2,
+            admsGroup3
+        }
+        return result
+    }
+    const adms = await getAllAdms()
+    const isAdmGroup1 = adms.admsGroup1.includes(userIdTelegram)
+    const isAdmGroup2 = adms.admsGroup1.includes(userIdTelegram)
+    const isAdmGroup3 = adms.admsGroup1.includes(userIdTelegram)
+    if (isAdmGroup1 || isAdmGroup2 || isAdmGroup3) {
+        return true
+    } else {
+        return false
+    }
 }
