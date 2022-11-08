@@ -40,7 +40,28 @@ export function isRegisterById(idUser) {
         return new Promise((resolve, reject) => {
             db.all("SELECT * FROM user WHERE idTelegram = ?", [idUser], async (error, rows) => {
                 if (error) {
-                    console.log('error')
+                    console.log(error)
+                    reject(error)
+                } else {
+                    console.log(rows.length)
+                    console.log(rows)
+                    if (rows.length > 0) {
+                        resolve(true)
+                    } else {
+                        resolve(false)
+                    }
+                }
+            })
+        })
+    } catch (error) { console.log(error) }
+}
+
+export function isActiveById(idUser) {
+    try {
+        return new Promise((resolve, reject) => {
+            db.all("SELECT * FROM user WHERE idTelegram = ? AND status = ? OR ?", [idUser,status.BUY,status.EMPTY], async (error, rows) => {
+                if (error) {
+                    console.log(error)
                     reject(error)
                 } else {
                     console.log(rows.length)
@@ -88,20 +109,20 @@ export function updateStatus(status, email) {
     } catch (error) { console.log(error) }
 }
 
-export function getLinks(email) {
+export function getLinksById(idTelegram) {
     try {
         return new Promise((resolve, reject) => {
-            db.all("SELECT * FROM user WHERE email = ?",
-                [email],
+            db.all("SELECT * FROM user WHERE idTelegram = ?",
+                [idTelegram],
                 (error, rows) => {
                     {
                         if (error) {
                             reject(error)
                         } else {
                             resolve({
-                                link1: rows.link1,
-                                link2: rows.link2,
-                                link3: rows.link3
+                                link1: rows[0].link1,
+                                link2: rows[0].link2,
+                                link3: rows[0].link3
                             })
                         }
                     }
@@ -222,7 +243,7 @@ export function getStatusByEmail(email) {
             db.all("SELECT status FROM user WHERE email = ?", [email], ((error, rows) => {
                 if (!error) {
                     resolve(rows[0].status)
-                }else{
+                } else {
                     reject(error)
                 }
             }))
@@ -230,4 +251,16 @@ export function getStatusByEmail(email) {
     } catch (error) {
         return error
     }
+}
+
+export function getOrderCodeById(idTelegram) {
+    return new Promise((resolve, reject) => {
+        db.all("SELECT orderCode FROM user WHERE idTelegram = ?", [idTelegram], (error, rows) => {
+            if(error){
+                reject(error)
+            }else{
+                resolve(rows)
+            }
+        })
+    })
 }

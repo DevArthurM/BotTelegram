@@ -10,6 +10,7 @@ import {
 } from './env.js'
 import {
     status,
+    isActiveById,
     isRegisterById,
     registerNewUser,
     isNewUser,
@@ -17,7 +18,9 @@ import {
     getIdTelegram,
     getUser,
     isUserRegister,
-    getAllUsers
+    getOrderCodeById,
+    getAllUsers,
+    getLinksById
 } from './databaseconfig.js'
 //Bot
 const bot = new Telegraf.Telegraf(token);
@@ -66,13 +69,7 @@ app.post(endPointBuyBot, async (req, res) => {
     }
 })
 
-app.get("/test", async (req, res) => {
-    bot.telegram.unbanChatMember("-1001456522037", 1338525257)
-    res.send(await isAmd(1694198535))
-})
-
 // Start command bot.
-
 bot.launch()
 bot.start(async (content) => {
     try {
@@ -104,6 +101,19 @@ bot.start(async (content) => {
 
 // Read text
 bot.on("text", async (content) => {
+    let globalOrderCode = ""
+    async function sendLinks(idUser, orderCodeText) {
+        const link = {
+            link1: await createChatLink(links.link1).then((link) => { return link.invite_link }),
+            link2: await createChatLink(links.link2).then((link) => { return link.invite_link }),
+            link3: await createChatLink(links.link3).then((link) => { return link.invite_link })
+        }
+        registerNewUser(idUser, orderCodeText, link)
+        await content.reply(`Grupo de interação 👥 - ${link.link1}`)
+        await content.reply(`Grupo de sinais LISTA 💸🧾- ${link.link2}`)
+        await content.reply(`Grupo de sinais 🔴 AO VIVO 🤑 - ${link.link3}`)
+        content.reply("Caso os links estejam expirados, digite a palavra link, e enviaremos novamente.")
+    }
     try {
         const typeChat = content.update.message.chat.type
         if (typeChat === 'private') {
@@ -114,17 +124,10 @@ bot.on("text", async (content) => {
             const isACode = orderCodeText.slice(0, 2) === ("HP")
             // Routines
             if (isACode) {
+                globalOrderCode = orderCodeText
                 if (await isNewUser(orderCodeText)) {
                     content.reply(`Seja bem vindo ${name}!\nSeus links estão sendo gerados, aguarde!`)
-                    const link = {
-                        link1: await createChatLink(links.link1).then((link) => { return link.invite_link }),
-                        link2: await createChatLink(links.link2).then((link) => { return link.invite_link }),
-                        link3: await createChatLink(links.link3).then((link) => { return link.invite_link })
-                    }
-                    registerNewUser(idUser, orderCodeText, link)
-                    await content.reply(`Grupo de interação 👥 - ${link.link1}`)
-                    await content.reply(`Grupo de sinais LISTA 💸🧾- ${link.link2}`)
-                    await content.reply(`Grupo de sinais 🔴 AO VIVO 🤑 - ${link.link3}`)
+                    sendLinks(idUser, orderCodeText)
                 } else {
                     if (await isRegisterById(idUser)) {
                         content.reply("Seu telegram já está cadastrado conosco.")
@@ -144,9 +147,29 @@ bot.on("text", async (content) => {
                             })
                             content.reply(message)
                             break;
+                        case "LINKS":
+                            content.reply("Comando restrito a usuários.")
+                            break;
                     }
                 } else {
-                    content.reply(`Digite um código válido.`)
+                    switch (command) {
+                        case "LINKS":
+                            if (await isActiveById(idUser)) {
+                                if (await isOnGroup(idUser)) {
+                                    content.reply("Você já está em um dos grupos.")
+                                } else {
+                                    revokeLinks(idUser)
+                                    const getOrderCodeUser = await getOrderCodeById(idUser).then((result) => { return result[0].orderCode })
+                                    sendLinks(idUser, getOrderCodeUser)
+                                }
+                            }else{
+                                content.reply("Você não tem acesso a esse comando.")
+                            }
+                            break;
+                        default:
+                            content.reply(`Digite um código válido.`)
+                            break;
+                    }
                 }
             }
         }
@@ -156,7 +179,6 @@ bot.on("text", async (content) => {
 
 // Functions
 async function banChatMemberRoutine(userIdTelegram) {
-    console.log(await isAmd(userIdTelegram))
     try {
         return new Promise(async (resolve, reject) => {
             if (await isAmd(userIdTelegram)) {
@@ -233,4 +255,24 @@ async function isAmd(userIdTelegram) {
     } else {
         return false
     }
+}
+
+function isOnGroup(idTelegram) {
+    return new Promise(async (resolve, reject) => {
+        const membersChat1 = await bot.telegram.getChatMember(links.link1, idTelegram).then((user) => { return user })
+        const membersChat2 = await bot.telegram.getChatMember(links.link2, idTelegram).then((user) => { return user })
+        const membersChat3 = await bot.telegram.getChatMember(links.link3, idTelegram).then((user) => { return user })
+        if ((membersChat1.status || membersChat2.status || membersChat3.status) === "left") {
+            resolve(false)
+        } else {
+            resolve(true)
+        }
+    })
+}
+
+async function revokeLinks(idTelegram) {
+    const linksUser = await getLinksById(idTelegram).then((result) => { return result })
+    bot.telegram.revokeChatInviteLink(links.link1, linksUser.link1)
+    bot.telegram.revokeChatInviteLink(links.link2, linksUser.link2)
+    bot.telegram.revokeChatInviteLink(links.link3, linksUser.link3)
 }

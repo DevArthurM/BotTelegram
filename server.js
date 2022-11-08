@@ -59,8 +59,8 @@ app.post('/refundOrder', async (req, res) => {
     try {
         const body = req.body
         const eventType = body.event
-        if (isUser()) {
-            const email = eventType === "SUBSCRIPTION_CANCELLATION" ? await body.data.subscriber.email : await body.data.buyer.email
+        const email = eventType === "SUBSCRIPTION_CANCELLATION" ? await body.data.subscriber.email : await body.data.buyer.email
+        if (isUser(email)) {
             setStateByMail(status.REFOUND, email)
             banPerson(email).finally(() => {
                 console.log(`User ${email} banned`)
