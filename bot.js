@@ -112,7 +112,7 @@ bot.on("text", async (content) => {
         await content.reply(`Grupo de interação 👥 - ${link.link1}`)
         await content.reply(`Grupo de sinais LISTA 💸🧾- ${link.link2}`)
         await content.reply(`Grupo de sinais 🔴 AO VIVO 🤑 - ${link.link3}`)
-        content.reply("Caso os links estejam expirados, digite a palavra link, e enviaremos novamente.")
+        content.reply("Caso os links estejam expirados, digite a palavra links, e enviaremos novamente.")
     }
     try {
         const typeChat = content.update.message.chat.type
